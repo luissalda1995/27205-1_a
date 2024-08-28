@@ -1,104 +1,71 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Math Function Visualizer</title>
-    <script src="https://cdn.jsdelivr.net/npm/mathjs@9.4.4/lib/browser/math.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.5.1/dist/chart.min.js"></script>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Function Visualizer</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/plotly.js-dist@2.17.1/plotly.min.js">
     <style>
-      body {
-        font-family: Arial, sans-serif;
-      }
-      #functionInput {
-        width: 50%;
-        padding: 10px;
-        font-size: 18px;
-      }
-      #chartContainer {
-        width: 80vw;
-        height: 60vh;
-        margin: 20px auto;
-      }
+        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
+        #graph-container { width: 100%; height: 400px; }
+        .controls { margin: 20px 0; }
+        input, button { margin: 5px; padding: 10px; }
     </style>
-  </head>
-  <body>
-    <input
-      type="text"
-      id="functionInput"
-      placeholder="Enter function, e.g., x^2 + 3*x - 4"
-    />
-    <div id="chartContainer">
-      <canvas id="functionChart"></canvas>
-    </div>
+</head>
+<body>
+    
+<div class="controls">
+    <input type="text" id="functionInput" placeholder="Enter function: e.g., x^2">
+    <button onclick="plotFunction()">Plot</button>
+    <button onclick="zoomIn()">Zoom In</button>
+    <button onclick="zoomOut()">Zoom Out</button>
+</div>
+<div id="graph-container"></div>
+<script>
+    let graphDiv = document.getElementById('graph-container');
+    let layout = {
+        title: 'Function Plot',
+        xaxis: {title: 'X Axis'},
+        yaxis: {title: 'Y Axis'}
+    };
+    let plotlyConfig = {responsive: true};
 
-    <script>
-      const inputField = document.getElementById('functionInput');
-      const ctx = document.getElementById('functionChart').getContext('2d');
-      let chart = null;
-
-      function plotFunction() {
-        const userFunction = inputField.value;
-        if (!userFunction) return;
-
-        const xValues = Array.from({ length: 200 }, (_, i) => i / 20 - 5);
-        const yValues = xValues.map((x) => {
-          try {
-            return math.evaluate(userFunction, { x: x });
-          } catch (e) {
-            return NaN;
-          }
+    function plotFunction() {
+        let expr = document.getElementById('functionInput').value;
+        let x = Array.from({length: 100}, (_, i) => i / 10 - 5); // Generate x values
+        let y = x.map(x => {
+            try {
+                return eval(expr.replace(/x/g, '(' + x + ')')); // Unsafe eval, use a math parser in production
+            } catch (e) {
+                return NaN;
+            }
         });
 
-        const labels = xValues;
-        const data = {
-          labels: labels,
-          datasets: [
-            {
-              label: userFunction,
-              data: yValues,
-              borderColor: 'rgba(75, 192, 192, 1)',
-              fill: false,
-            },
-          ],
-        };
+        let data = [{
+            x: x,
+            y: y,
+            type: 'scatter',
+            mode: 'lines',
+            name: 'f(x)'
+        }];
 
-        if (chart) {
-          chart.data = data;
-          chart.update();
-        } else {
-          chart = new Chart(ctx, {
-            type: 'line',
-            data: data,
-            options: {
-              scales: {
-                y: {
-                  beginAtZero: false,
-                },
-                x: {
-                  title: {
-                    display: true,
-                    text: 'X Axis',
-                  },
-                },
-              },
-              plugins: {
-                zoom: {
-                  zoom: {
-                    wheel: {
-                      enabled: true,
-                    },
-                    mode: 'xy',
-                  },
-                },
-              },
-            },
-          });
-        }
-      }
+        Plotly.newPlot(graphDiv, data, layout, plotlyConfig);
+        // Here you would calculate and add traces for maxima, minima, etc.
+    }
 
-      inputField.addEventListener('input', plotFunction);
-      plotFunction();
-    </script>
-  </body>
+    function zoomIn() {
+        let update = { 'xaxis.range': [graphDiv.layout.xaxis.range[0] + 1, graphDiv.layout.xaxis.range[1] - 1] };
+        Plotly.relayout(graphDiv, update);
+    }
+
+    function zoomOut() {
+        let update = { 'xaxis.range': [graphDiv.layout.xaxis.range[0] - 1, graphDiv.layout.xaxis.range[1] + 1] };
+        Plotly.relayout(graphDiv, update);
+    }
+
+    // Initial plot
+    plotFunction();
+</script>
+
+</body>
 </html>
